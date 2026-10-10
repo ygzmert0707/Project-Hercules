@@ -11,6 +11,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "PrjctHerculesPrttype.h"
+#include "ItemPickup.h"
 
 APrjctHerculesPrttypeCharacter::APrjctHerculesPrttypeCharacter()
 {
@@ -65,6 +66,13 @@ void APrjctHerculesPrttypeCharacter::SetupPlayerInputComponent(UInputComponent* 
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APrjctHerculesPrttypeCharacter::Look);
+
+		if (InteractAction)
+		{
+			EnhancedInputComponent->BindAction(
+				InteractAction, ETriggerEvent::Started,
+				this, &APrjctHerculesPrttypeCharacter::Interact);
+		}
 	}
 	else
 	{
@@ -130,4 +138,33 @@ void APrjctHerculesPrttypeCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void APrjctHerculesPrttypeCharacter::Interact()
+{
+	UE_LOG(LogPrjctHerculesPrttype, Log, TEXT("Interact pressed"));
+	TArray<AActor*> OverlappingActors;
+	GetOverlappingActors(OverlappingActors, AItemPickup::StaticClass());
+	for (AActor* Actor : OverlappingActors)
+	{
+		AItemPickup* Pickup = Cast<AItemPickup>(Actor);
+
+		if (Pickup)
+		{
+			Pickup->TryInteract(this);
+			break;
+		}
+	}
+}
+
+bool APrjctHerculesPrttypeCharacter::AddItem(FName ItemId)
+{
+	if (ItemId.IsNone())
+	{
+		return false;
+	}
+
+	Inventory.Add(ItemId);
+	UE_LOG(LogPrjctHerculesPrttype, Log, TEXT("Item added to inventory"));
+	return true;
 }

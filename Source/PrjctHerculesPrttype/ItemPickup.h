@@ -16,8 +16,12 @@ class PRJCTHERCULESPRTTYPE_API AItemPickup : public AActor
 
 public:
 	AItemPickup();
-
+	void TryInteract(AActor* InteractingActor);
 protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup")
+	FName ItemId = TEXT("Sword");
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup")
 	TObjectPtr<USceneComponent> SceneRoot;
 

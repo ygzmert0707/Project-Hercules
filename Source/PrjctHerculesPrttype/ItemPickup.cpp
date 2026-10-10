@@ -4,6 +4,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Character.h"
+#include "PrjctHerculesPrttypeCharacter.h"
 
 AItemPickup::AItemPickup()
 {
@@ -82,4 +83,26 @@ void AItemPickup::OnInteractionEnd(
 		Log,
 		TEXT("Player left pickup range: %s"),
 		*GetName());
+}
+
+void AItemPickup::TryInteract(AActor* InteractingActor)
+{
+	if (!bPlayerInRange || InteractingActor != CurrentPlayer)
+	{
+		return;
+	}
+
+	APrjctHerculesPrttypeCharacter* Character =
+		Cast<APrjctHerculesPrttypeCharacter>(InteractingActor);
+
+	if (!Character)
+	{
+		return;
+	}
+
+	if (Character->AddItem(ItemId))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Item picked up"));
+		Destroy();
+	}
 }

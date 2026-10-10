@@ -49,10 +49,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InteractAction = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TArray<FName> Inventory;
+
 public:
 
 	/** Constructor */
 	APrjctHerculesPrttypeCharacter();	
+	bool AddItem(FName ItemId);
 
 protected:
 
@@ -66,6 +73,8 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	void Interact();
 
 public:
 
