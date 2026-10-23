@@ -168,3 +168,62 @@ bool APrjctHerculesPrttypeCharacter::AddItem(FName ItemId)
 	UE_LOG(LogPrjctHerculesPrttype, Log, TEXT("Item added to inventory"));
 	return true;
 }
+
+bool APrjctHerculesPrttypeCharacter::EquipItem(FName ItemId)
+{
+	if (ItemId.IsNone() || !Inventory.Contains(ItemId))
+	{
+		return false;
+	}
+
+	EquippedItem = ItemId;
+	return true;
+}
+
+bool APrjctHerculesPrttypeCharacter::AssignItemToSlot(FName ItemId, int32 SlotNumber)
+{
+	if (ItemId.IsNone() || !Inventory.Contains(ItemId))
+	{
+		return false;
+	}
+
+	if (SlotNumber != 1 && SlotNumber != 2)
+	{
+		return false;
+	}
+
+	FName& TargetSlot = (SlotNumber == 1) ? QuickSlot1Item : QuickSlot2Item;
+	FName& OtherSlot = (SlotNumber == 1) ? QuickSlot2Item : QuickSlot1Item;
+
+	if (TargetSlot == ItemId)
+	{
+		return false;
+	}
+
+	if (OtherSlot == ItemId)
+	{
+		FName TempItem = TargetSlot;
+		TargetSlot = ItemId;
+		OtherSlot = TempItem;
+	}
+	else
+	{
+		TargetSlot = ItemId;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Slot1: %s | Slot2: %s"),
+		*QuickSlot1Item.ToString(),
+		*QuickSlot2Item.ToString());
+
+	return true;
+}
+
+FName APrjctHerculesPrttypeCharacter::GetQuickSlot1Item() const
+{
+	return QuickSlot1Item;
+}
+
+FName APrjctHerculesPrttypeCharacter::GetQuickSlot2Item() const
+{
+	return QuickSlot2Item;
+}

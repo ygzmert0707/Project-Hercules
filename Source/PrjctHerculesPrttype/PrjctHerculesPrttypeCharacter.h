@@ -55,12 +55,43 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FName> Inventory;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	FName EquippedItem = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	FName QuickSlot1Item = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	FName QuickSlot2Item = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 CharacterLevel = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 UpgradeCurrency = 0;
 public:
 
 	/** Constructor */
 	APrjctHerculesPrttypeCharacter();	
 	bool AddItem(FName ItemId);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool EquipItem(FName ItemId);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool AssignItemToSlot(FName ItemId, int32 SlotNumber);
+
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	FName GetQuickSlot1Item() const;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	FName GetQuickSlot2Item() const;
+
+	UFUNCTION(BlueprintPure, Category = "Progression")
+	int32 GetCharacterLevel() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Progression")
+	void AddUpgradeCurrency(int32 Amount);
 protected:
 
 	/** Initialize input action bindings */
