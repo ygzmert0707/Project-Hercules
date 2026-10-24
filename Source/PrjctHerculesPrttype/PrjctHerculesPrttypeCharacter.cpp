@@ -177,6 +177,7 @@ bool APrjctHerculesPrttypeCharacter::EquipItem(FName ItemId)
 	}
 
 	EquippedItem = ItemId;
+	OnEquippedItemChanged(ItemId);
 	return true;
 }
 
@@ -218,6 +219,24 @@ bool APrjctHerculesPrttypeCharacter::AssignItemToSlot(FName ItemId, int32 SlotNu
 	return true;
 }
 
+bool APrjctHerculesPrttypeCharacter::ClearQuickSlot(int32 SlotNumber)
+{
+	if (SlotNumber == 1)
+	{
+		QuickSlot1Item = NAME_None;
+	}
+	else if (SlotNumber == 2)
+	{
+		QuickSlot2Item = NAME_None;
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
 FName APrjctHerculesPrttypeCharacter::GetQuickSlot1Item() const
 {
 	return QuickSlot1Item;
@@ -226,4 +245,134 @@ FName APrjctHerculesPrttypeCharacter::GetQuickSlot1Item() const
 FName APrjctHerculesPrttypeCharacter::GetQuickSlot2Item() const
 {
 	return QuickSlot2Item;
+}
+
+void APrjctHerculesPrttypeCharacter::AddUpgradeCurrency(int32 Amount)
+{
+	if (Amount <= 0)
+	{
+		return;
+	}
+
+	UpgradeCurrency += Amount;
+	UE_LOG(LogPrjctHerculesPrttype, Log, TEXT("Upgrade currency total: %d"), UpgradeCurrency);
+	UE_LOG(LogPrjctHerculesPrttype, Log, TEXT("Upgrade currency added: %d"), Amount);
+}
+
+int32 APrjctHerculesPrttypeCharacter::GetCharacterLevel() const
+{
+	return CharacterLevel;
+}
+
+int32 APrjctHerculesPrttypeCharacter::GetUpgradeCurrency() const
+{
+	return UpgradeCurrency;
+}
+
+bool APrjctHerculesPrttypeCharacter::UpgradeStat(ECharacterStat Stat)
+{
+	const int32 Cost = GetUpgradeCost();
+
+	if (UpgradeCurrency < Cost)
+	{
+		return false;
+	}
+
+	switch (Stat)
+	{
+	case ECharacterStat::Strength:
+		Strength++;
+		break;
+
+	case ECharacterStat::Dexterity:
+		Dexterity++;
+		break;
+
+	case ECharacterStat::Agility:
+		Agility++;
+		break;
+
+	case ECharacterStat::Thickness:
+		Thickness++;
+		break;
+
+	case ECharacterStat::Vigor:
+		Vigor++;
+		break;
+
+	case ECharacterStat::Endurance:
+		Endurance++;
+		break;
+
+	case ECharacterStat::Pace:
+		Pace++;
+		break;
+
+	case ECharacterStat::MagicalCapability:
+		MagicalCapability++;
+		break;
+
+	case ECharacterStat::Intelligence:
+		Intelligence++;
+		break;
+
+	case ECharacterStat::Faith:
+		Faith++;
+		break;
+
+	default:
+		return false;
+	}
+
+	UpgradeCurrency -= Cost;
+	CharacterLevel++;
+
+	UE_LOG(LogPrjctHerculesPrttype, Log, TEXT("Stat upgraded. Level: %d | Currency: %d"), CharacterLevel, UpgradeCurrency);
+
+	return true;
+}
+int32 APrjctHerculesPrttypeCharacter::GetStatValue(ECharacterStat Stat) const
+{
+	switch (Stat)
+	{
+	case ECharacterStat::Strength:
+		return Strength;
+
+	case ECharacterStat::Dexterity:
+		return Dexterity;
+
+	case ECharacterStat::Agility:
+		return Agility;
+
+	case ECharacterStat::Thickness:
+		return Thickness;
+
+	case ECharacterStat::Vigor:
+		return Vigor;
+
+	case ECharacterStat::Endurance:
+		return Endurance;
+
+	case ECharacterStat::Pace:
+		return Pace;
+
+	case ECharacterStat::MagicalCapability:
+		return MagicalCapability;
+
+	case ECharacterStat::Intelligence:
+		return Intelligence;
+
+	case ECharacterStat::Faith:
+		return Faith;
+
+	default:
+		return 0;
+	}
+}
+
+int32 APrjctHerculesPrttypeCharacter::GetUpgradeCost() const
+{
+	const int32 LevelsGained = CharacterLevel - 1;
+	const int32 UpgradeCost = 100 + 20 * LevelsGained + 2 * LevelsGained * LevelsGained;
+	return UpgradeCost;
 }

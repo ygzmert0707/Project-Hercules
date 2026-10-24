@@ -7,6 +7,21 @@
 #include "Logging/LogMacros.h"
 #include "PrjctHerculesPrttypeCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class ECharacterStat : uint8
+{
+	Strength,
+	Dexterity,
+	Agility,
+	Thickness,
+	Vigor,
+	Endurance,
+	Pace,
+	MagicalCapability,
+	Intelligence,
+	Faith,
+};
+
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
@@ -69,6 +84,36 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
 	int32 UpgradeCurrency = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Strength = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Dexterity = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Agility = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Thickness = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Vigor = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Endurance = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Pace = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 MagicalCapability = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Intelligence = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	int32 Faith = 1;
 public:
 
 	/** Constructor */
@@ -78,8 +123,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool EquipItem(FName ItemId);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
+	void OnEquippedItemChanged(FName ItemId);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AssignItemToSlot(FName ItemId, int32 SlotNumber);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool ClearQuickSlot(int32 SlotNumber);
 
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	FName GetQuickSlot1Item() const;
@@ -92,6 +143,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Progression")
 	void AddUpgradeCurrency(int32 Amount);
+
+	UFUNCTION(BlueprintPure, Category = "Progression")
+	int32 GetUpgradeCurrency() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Progression")
+	bool UpgradeStat(ECharacterStat Stat);
+
+	UFUNCTION(BlueprintPure, Category = "Progression")
+	int32 GetStatValue(ECharacterStat Stat) const;
+
+	UFUNCTION(BlueprintPure, Category = "Progression")
+	int32 GetUpgradeCost() const;
 protected:
 
 	/** Initialize input action bindings */
