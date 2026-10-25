@@ -12,6 +12,12 @@
 #include "InputActionValue.h"
 #include "PrjctHerculesPrttype.h"
 #include "ItemPickup.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/World.h"
+#include "Engine/OverlapResult.h"
+#include "CombatDamageable.h"
+#include "Animation/AnimInstance.h"
 
 APrjctHerculesPrttypeCharacter::APrjctHerculesPrttypeCharacter()
 {
@@ -72,6 +78,15 @@ void APrjctHerculesPrttypeCharacter::SetupPlayerInputComponent(UInputComponent* 
 			EnhancedInputComponent->BindAction(
 				InteractAction, ETriggerEvent::Started,
 				this, &APrjctHerculesPrttypeCharacter::Interact);
+		}
+
+		if (AttackAction)
+		{
+			EnhancedInputComponent->BindAction(
+				AttackAction,
+				ETriggerEvent::Started,
+				this,
+				&APrjctHerculesPrttypeCharacter::Attack);
 		}
 	}
 	else
@@ -157,6 +172,55 @@ void APrjctHerculesPrttypeCharacter::Interact()
 	}
 }
 
+void APrjctHerculesPrttypeCharacter::Attack()
+{
+	if (bRightHandOccupied || bLeftHandOccupied || !UnarmedAttackMontage)
+	{
+		return;
+	}
+
+	UAnimMontage* CurrentMontage = GetCurrentMontage();
+
+	if (CurrentMontage && CurrentMontage != UnarmedAttackMontage)
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	const bool bWithinComboWindow =
+		ComboWindowStartTime >= 0.0f
+		&& CurrentTime - ComboWindowStartTime <= ComboInputWindow;
+
+	if (bWithinComboWindow
+		&& ComboSectionNames.IsValidIndex(ComboCount + 1))
+	{
+		CachedAttackInputTime = CurrentTime;
+
+		if (bComboTransitionReady || !CurrentMontage)
+		{
+			CheckCombo();
+		}
+
+		return;
+	}
+
+	if (CurrentMontage)
+	{
+		return;
+	}
+
+	ComboCount = 0;
+	CachedAttackInputTime = -1.0f;
+	ComboWindowStartTime = -1.0f;
+	bComboTransitionReady = false;
+
+	if (PlayAnimMontage(UnarmedAttackMontage) > 0.0f)
+	{
+		ComboWindowStartTime = CurrentTime;
+	}
+}
+
 bool APrjctHerculesPrttypeCharacter::AddItem(FName ItemId)
 {
 	if (ItemId.IsNone())
@@ -216,6 +280,7 @@ bool APrjctHerculesPrttypeCharacter::AssignItemToSlot(FName ItemId, int32 SlotNu
 		*QuickSlot1Item.ToString(),
 		*QuickSlot2Item.ToString());
 
+	OnQuickSlotsChanged();
 	return true;
 }
 
@@ -234,6 +299,7 @@ bool APrjctHerculesPrttypeCharacter::ClearQuickSlot(int32 SlotNumber)
 		return false;
 	}
 
+	OnQuickSlotsChanged();
 	return true;
 }
 
@@ -375,4 +441,156 @@ int32 APrjctHerculesPrttypeCharacter::GetUpgradeCost() const
 	const int32 LevelsGained = CharacterLevel - 1;
 	const int32 UpgradeCost = 100 + 20 * LevelsGained + 2 * LevelsGained * LevelsGained;
 	return UpgradeCost;
+}
+
+void APrjctHerculesPrttypeCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	CurrentHP = MaxHP;
+}
+
+float APrjctHerculesPrttypeCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (DamageAmount <= 0.0f || CurrentHP <= 0.0f)
+	{
+		return 0.0f;
+	}
+
+	const float DamageToApply = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	const float ActualDamage = FMath::Clamp(DamageToApply, 0.0f, CurrentHP);
+
+	CurrentHP -= ActualDamage;
+	return ActualDamage;
+}
+
+void APrjctHerculesPrttypeCharacter::DoAttackTrace(FName DamageSourceBone)
+{
+	TArray<FHitResult> Hits;
+
+	const FVector TraceStart = GetMesh()->GetSocketLocation(DamageSourceBone);
+	const FVector TraceEnd = TraceStart + GetActorForwardVector() * MeleeTraceDistance;
+
+	FCollisionObjectQueryParams ObjectTypes;
+	ObjectTypes.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectTypes.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectTypes.AddObjectTypesToQuery(ECC_PhysicsBody);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld()->SweepMultiByObjectType(
+		Hits,
+		TraceStart,
+		TraceEnd,
+		FQuat::Identity,
+		ObjectTypes,
+		FCollisionShape::MakeSphere(MeleeTraceRadius),
+		QueryParams);
+
+	if (!bHit)
+	{
+		return;
+	}
+
+	TSet<AActor*> DamagedActors;
+
+	for (const FHitResult& Hit : Hits)
+	{
+		AActor* HitActor = Hit.GetActor();
+
+		if (!HitActor || DamagedActors.Contains(HitActor))
+		{
+			continue;
+		}
+
+		ICombatDamageable* Damageable = Cast<ICombatDamageable>(HitActor);
+
+		if (Damageable)
+		{
+			DamagedActors.Add(HitActor);
+
+			const FVector Impulse =
+				Hit.ImpactNormal * -MeleeKnockbackImpulse
+				+ FVector::UpVector * MeleeLaunchImpulse;
+
+			UE_LOG(LogPrjctHerculesPrttype, Log,
+				TEXT("Punch hit: %s"), *HitActor->GetName());
+
+			Damageable->ApplyDamage(
+				MeleeDamage,
+				this,
+				Hit.ImpactPoint,
+				Impulse);
+		}
+	}
+}
+
+void APrjctHerculesPrttypeCharacter::CheckChargedAttack()
+{
+}
+
+void APrjctHerculesPrttypeCharacter::CheckCombo()
+{
+	if (bRightHandOccupied || bLeftHandOccupied || !UnarmedAttackMontage)
+	{
+		return;
+	}
+
+	UAnimMontage* CurrentMontage = GetCurrentMontage();
+
+	if (CurrentMontage && CurrentMontage != UnarmedAttackMontage)
+	{
+		return;
+	}
+
+	bComboTransitionReady = true;
+
+	if (ComboWindowStartTime < 0.0f
+		|| CachedAttackInputTime < ComboWindowStartTime)
+	{
+		return;
+	}
+
+	const float InputDelay =
+		CachedAttackInputTime - ComboWindowStartTime;
+
+	if (InputDelay > ComboInputWindow)
+	{
+		return;
+	}
+
+	const int32 NextComboIndex = ComboCount + 1;
+
+	if (!ComboSectionNames.IsValidIndex(NextComboIndex))
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	const FName NextSection = ComboSectionNames[NextComboIndex];
+
+	if (AnimInstance->Montage_GetIsStopped(UnarmedAttackMontage))
+	{
+		if (PlayAnimMontage(UnarmedAttackMontage, 1.0f, NextSection) <= 0.0f)
+		{
+			return;
+		}
+	}
+	else
+	{
+		AnimInstance->Montage_JumpToSection(
+			NextSection,
+			UnarmedAttackMontage);
+	}
+
+	ComboCount = NextComboIndex;
+	CachedAttackInputTime = -1.0f;
+	ComboWindowStartTime = GetWorld()->GetTimeSeconds();
+	bComboTransitionReady = false;
 }

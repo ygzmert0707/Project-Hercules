@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "CombatAttacker.h"
 #include "PrjctHerculesPrttypeCharacter.generated.h"
 
 UENUM(BlueprintType)
@@ -25,6 +26,7 @@ enum class ECharacterStat : uint8
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UAnimMontage;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -34,7 +36,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
  *  Implements a controllable orbiting camera
  */
 UCLASS(abstract)
-class APrjctHerculesPrttypeCharacter : public ACharacter
+class APrjctHerculesPrttypeCharacter : public ACharacter, public ICombatAttacker
 {
 	GENERATED_BODY()
 
@@ -66,6 +68,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* InteractAction = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* AttackAction = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FName> Inventory;
@@ -114,17 +119,74 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
 	int32 Faith = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Health")
+	float MaxHP = 5.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Health")
+	float CurrentHP = 5.0f;
+
+	virtual void BeginPlay() override;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	bool bRightHandOccupied = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	bool bLeftHandOccupied = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	UAnimMontage* UnarmedAttackMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Trace")
+	float MeleeTraceDistance = 75.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Trace")
+	float MeleeTraceRadius = 75.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Damage")
+	float MeleeDamage = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Damage")
+	float MeleeKnockbackImpulse = 250.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Damage")
+	float MeleeLaunchImpulse = 300.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Combo")
+	TArray<FName> ComboSectionNames;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Combo")
+	float ComboInputWindow = 1.0f;
+
+	int32 ComboCount = 0;
+
+	float CachedAttackInputTime = -1.0f;
+
+	float ComboWindowStartTime = -1.0f;
+
+	bool bComboTransitionReady = false;
+
 public:
 
 	/** Constructor */
 	APrjctHerculesPrttypeCharacter();	
 	bool AddItem(FName ItemId);
 
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser
+	) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool EquipItem(FName ItemId);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
 	void OnEquippedItemChanged(FName ItemId);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
+	void OnQuickSlotsChanged();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AssignItemToSlot(FName ItemId, int32 SlotNumber);
@@ -155,6 +217,11 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Progression")
 	int32 GetUpgradeCost() const;
+
+	virtual void DoAttackTrace(FName DamageSourceBone) override;
+	virtual void CheckCombo() override;
+	virtual void CheckChargedAttack() override;
+
 protected:
 
 	/** Initialize input action bindings */
@@ -169,6 +236,8 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	void Interact();
+
+	void Attack();
 
 public:
 
