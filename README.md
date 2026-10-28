@@ -11,6 +11,17 @@
 
 Basic health reduction, punch animation/hits, weapon changes, slot refresh and transparent character preview have been reported working in manual playtests. The latest one-second combo behavior, montage-section configuration and complete menu/level-up flow still need validation. Full regression testing remains pending.
 
+## Planned gameplay vision
+
+These are future design goals, not implemented or playtested features:
+
+- **Build-weighted skill choices:** favour skills that complement the character's stat/build choices while keeping other build directions available.
+- **Active and passive abilities:** combine usable skills and passive effects to support varied character builds.
+- **Temporary ability drafts:** after every third enemy defeat, offer three distinct temporary active abilities and let the player choose one.
+- **Boss and act progression:** after a boss defeat, remove temporary abilities and offer five build-weighted permanent active ability options. The player selects one to retain for the next act.
+
+Exact weights, passive-ability acquisition and persistence beyond the next act remain to be defined. The implementation approach is still undecided.
+
 ## Contribution scope and attribution
 
 - **Project-specific extensions:** inventory and quick-slot rules, equipment state, stat/currency checks, and C++–Blueprint event connections, integrated into the player and UI.
